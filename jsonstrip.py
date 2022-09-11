@@ -78,7 +78,8 @@ def strip(json_str: str) -> str:
                 pos = i - 1
             elif n is Cmd.BLANK:
                 result.append(' ' * (i - pos + 1))
-    result.append(json_str[pos:])
+    if state not in {State.SL_COMMENT, State.ML_COMMENT, State.ML_COMMENT_END}:
+        result.append(json_str[pos:])
     return "".join(result)
 
 

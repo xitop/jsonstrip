@@ -17,7 +17,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name='jsonstrip',
-    version='22.9.7',
+    version='22.9.11',
     description='A Python module for stripping comments from JSON',
     long_description=long_description,
     long_description_content_type="text/markdown",
