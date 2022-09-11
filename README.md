@@ -27,6 +27,12 @@ programs exchange data, but sometimes an admin needs to write a configuration
 or similar file in JSON format and wants to comment the contents. Those comments
 need to be removed before the document can be loaded.
 
+#### Which comment types are recognized?
+
+Only JavaScript comments, both single line and multi-line. As the name implies,
+the JSON comes from the JavaScript (JS) programming language. Other comment types
+like the ~~`# shell script comment`~~ are not supported.
+
 ## Features
 
 - The **main feature** is that line/column position of text is preserved.
