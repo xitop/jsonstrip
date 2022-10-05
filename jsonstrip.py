@@ -60,8 +60,8 @@ def strip(json_str: str) -> str:
     result = []
     pos = 0
     state = State.JSON
+    trans = TRANS[state]
     for i, ch in enumerate(json_str):
-        trans = TRANS[state]
         try:
             new = trans[ch]
         except KeyError:
@@ -69,6 +69,7 @@ def strip(json_str: str) -> str:
         for n in new:
             if isinstance(n, State):
                 state = n
+                trans = TRANS[state]
             elif n is Cmd.ECHO:
                 result.append(ch)
             elif n is Cmd.START:
