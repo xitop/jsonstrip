@@ -24,14 +24,14 @@ What makes `jsonstrip` unique is that it preserves line/column position of text.
 The [JSON specification](https://www.json.org/json-en.html) does not allow comments.
 A commented JSON is invalid JSON. This limitation does not matter when computer
 programs exchange data, but sometimes an admin needs to write a configuration
-or similar file in JSON format and wants to comment the contents. Those comments
+or a similar file in JSON format and wants to comment the contents. Those comments
 need to be removed before the document can be loaded.
 
 #### Which comment types are recognized?
 
-Only JavaScript comments, both single line and multi-line. As the name implies,
-the JSON comes from the JavaScript (JS) programming language. Other comment types
-like the ~~`# shell script comment`~~ are not supported.
+JavaScript (JS) comments - both single line and multi-line -
+and since version `22.10.20`
+also the widely-used (but not valid in JS) hash sign comments.
 
 ## Features
 
@@ -50,7 +50,7 @@ like the ~~`# shell script comment`~~ are not supported.
   [
   /* this is a comment and will be removed */
   "but /* this is a string and it will be left untouched */",
-  "this is also // not a comment"   // a real comment is here
+  "this is // not a line comment"   // the real comment is here
   ]
   ```
 
@@ -74,29 +74,32 @@ The author has decided to keep the `jsonstrip` as simple as possible.
 
 ## Installation
 
-Install with `pip3` from the PyPI.
+Install with `pip` from the PyPI.
 
 ## How it works
 
 ### Single line comments
 
-A single line comment starts with two forward slashes `//` and continues
-until the end of a line. Single line comments are removed.
+A single line comment starts either with two forward slashes `//` or a single hash sign `#`
+and continues until the end of a line. Single line comments are removed.
 
 Input:
 ```
-[10, 20] // this is a comment and will be removed
+[10, 20, // this is a comment and will be removed
+30, 40]  # this text is also a comment
 ```
 
 Output:
 ```
-[10, 20]
+[10, 20, 
+30, 40]  
 ```
 
 ### Multi-line comments
 
-A multi-line comment starts with `/*` and ends with `*/`. These comments
-are removed when occurring at the end of line and replaced by whitespace elsewhere.
+A multi-line comment (also called a block comment) starts with `/*` and ends with `*/`.
+These comments are removed when occurring at the end of line and replaced
+by whitespace elsewhere.
 
 Input:
 ```
@@ -142,6 +145,6 @@ jsoncheck filename1 [filename2 ...]
 #### Exit code
 
 - 0 = all input files are OK
-- 1 = invalid JSON in some input file
-- 2 = I/O error reading some input file
+- 1 = invalid JSON in some input file(s)
+- 2 = I/O error reading some input file(s)
 - 3 = both errors 1 and 2 occurred

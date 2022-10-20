@@ -13,14 +13,14 @@ __all__ = ['strip']
 State = enum.Enum('State',
     'JSON STRING ESCAPE SLASH SL_COMMENT ML_COMMENT ML_COMMENT_END')
 Cmd = enum.Enum('Cmd',
-    'FLUSH ECHO BLANK START')
+    'FLUSH0 FLUSH1 ECHO BLANK START0 START1')
 DEFAULT = None  # anything but a valid char
-NOOP = ()
 
 TRANS = {
     State.JSON: {
         '/': (State.SLASH,),
         '"': (State.STRING,),
+        '#': (State.SL_COMMENT, Cmd.FLUSH0),
     },
     State.STRING: {
         '\\': (State.ESCAPE,),
@@ -30,29 +30,35 @@ TRANS = {
         DEFAULT: (State.STRING,),
     },
     State.SLASH: {
-        '/': (State.SL_COMMENT, Cmd.FLUSH),
-        '*': (State.ML_COMMENT, Cmd.FLUSH),
+        '/': (State.SL_COMMENT, Cmd.FLUSH1),
+        '*': (State.ML_COMMENT, Cmd.FLUSH1),
+        '#': (State.SL_COMMENT, Cmd.FLUSH0),    # can't be valid JSON
         DEFAULT: (State.JSON,),
     },
     State.SL_COMMENT: {
-        '\r': (State.JSON, Cmd.ECHO, Cmd.START),
-        '\n': (State.JSON, Cmd.ECHO, Cmd.START),
+        '\r': (State.JSON, Cmd.START0),
+        '\n': (State.JSON, Cmd.START0),
     },
     State.ML_COMMENT: {
-        '\r': (Cmd.ECHO, Cmd.START),
-        '\n': (Cmd.ECHO, Cmd.START),
+        '\r': (Cmd.ECHO, Cmd.START1),
+        '\n': (Cmd.ECHO, Cmd.START1),
         '*': (State.ML_COMMENT_END,),
     },
     State.ML_COMMENT_END: {
-        '/': (State.JSON, Cmd.BLANK, Cmd.START),
-        '*': NOOP,
+        '/': (State.JSON, Cmd.BLANK, Cmd.START1),
+        '*': (),
         DEFAULT: (State.ML_COMMENT,),
     },
 }
 
 def strip(json_str: str) -> str:
     """
-    Remove /* multi-line comments */ and // single-line comments.
+    Remove comments from a JSON document.
+
+    Removed are:
+        /* JS multi-line comments */
+        // JS single-line comments
+        # line comments
 
     Add whitespace where necessary to keep the text position
     (i.e. line/column numbers) unchanged.
@@ -62,19 +68,27 @@ def strip(json_str: str) -> str:
     state = State.JSON
     trans = TRANS[state]
     for i, ch in enumerate(json_str):
-        try:
+        # not using try-except, because frequent KeyErrors slow down parsing
+        if ch in trans:
             new = trans[ch]
-        except KeyError:
-            new = trans.get(DEFAULT, NOOP)
+        elif DEFAULT in trans:
+            new = trans[DEFAULT]
+        else:
+            continue
         for n in new:
             if isinstance(n, State):
                 state = n
                 trans = TRANS[state]
             elif n is Cmd.ECHO:
                 result.append(ch)
-            elif n is Cmd.START:
+            elif n is Cmd.START0:
+                pos = i
+            elif n is Cmd.START1:
                 pos = i + 1
-            elif n is Cmd.FLUSH:
+            elif n is Cmd.FLUSH0:
+                result.append(json_str[pos:i])
+                pos = i
+            elif n is Cmd.FLUSH1:
                 result.append(json_str[pos:i-1])
                 pos = i - 1
             elif n is Cmd.BLANK:
